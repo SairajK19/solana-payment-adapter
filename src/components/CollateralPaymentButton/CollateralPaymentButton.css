@@ -1,0 +1,151 @@
+.collateral_payment_button button {
+  background-color: #32264d;
+  border: none;
+  padding: 20px 40px;
+  font-size: 1.2rem;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* .collateral_payment_button button:hover {
+  opacity: 0.7;
+} */
+
+a {
+  color: #989898;
+}
+
+.collateral_payment_card_wrapper {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 100ms;
+}
+
+.collateral_payment_card_wrapper_visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.collateral_payment_card_wrapper_invisible {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.collateral_payment_card {
+  width: 550px;
+  height: 350px;
+  background-color: #32264d;
+  border-radius: 6px;
+}
+
+.collateral_payment_card_topbar {
+  height: 60px;
+  width: 100%;
+  background-color: transparent;
+  border-bottom: 1px solid #989898;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px 20px;
+}
+
+#close {
+  cursor: pointer;
+}
+
+.collateral_payment_card_main {
+  height: calc(100% - 60px - 48px);
+  display: flex;
+  align-items: center;
+  padding: 20px;
+}
+
+.collateral_payment_card_main_product_img img {
+  border-radius: 6px;
+  height: 100%;
+}
+
+.collateral_payment_card_main_product_details {
+  text-align: start;
+  margin-left: 20px;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.collateral_payment_card_main_product_details p {
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.lock_sol_btn {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+}
+
+.lock_sol_btn p {
+  text-align: end;
+  cursor: pointer;
+}
+
+.lock_sol_btn button {
+  width: 100%;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background-color: #221838;
+  color: white;
+  border: 0px;
+  margin-top: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.lock_sol_btn button img {
+  margin-right: 10px;
+  width: 20px;
+}
+
+.collateral_payment_card_wallet .wallet-adapter-dropdown {
+  width: 100%;
+  border-top: 1px solid #989898;
+}
+
+.collateral_payment_card_wallet .wallet-adapter-dropdown button {
+  width: 100%;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.wallet-adapter-button-trigger {
+  width: 100%;
+  justify-content: center;
+}
+
+.collateral_payment_success h6:first-child {
+  text-align: start;
+  margin-bottom: 5px;
+}
+
+.collateral_payment_success p {
+  margin-top: 5px;
+  justify-self: center;
+}
+
+.collateral_payment_success {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  margin-bottom: 15px;
+}
