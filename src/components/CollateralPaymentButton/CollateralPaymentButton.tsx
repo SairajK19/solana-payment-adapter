@@ -9,7 +9,13 @@ import {
   useWallet,
   WalletContextState,
 } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  sendAndConfirmTransaction,
+  Transaction,
+} from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
 import { idl } from "../../idl";
 import {
@@ -19,7 +25,12 @@ import {
 } from "../utils";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
-import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import {
+  createAccount,
+  createAssociatedTokenAccountInstruction,
+  getOrCreateAssociatedTokenAccount,
+} from "@solana/spl-token";
+import axios from "axios";
 
 const USDC_MINT = new PublicKey("BCNR5AVuUqUVfm5qhEpAhJa3QTZHZnp7Ma8DvEnpcHSm"); // devnet
 // const USDC_MINT = new PublicKey("73P6wmhuwJm661EN6ahFdYDP9dJGmAwjnAsCF2E3ajB9"); // testnet
@@ -36,12 +47,16 @@ export const CollateralPaymentButton = () => {
   const { publicKey, wallet, signTransaction, signAllTransactions } =
     useWallet();
   const [anchorProgram, setAnchorProgram] = useState<any>(null);
-  const [provider, setProvider] = useState<any>();
+  const [provider, setProvider] = useState<anchor.AnchorProvider>();
   const [paymentPending, setPaymentPending] = useState(true);
   const [paymentChannel, setPaymentChannel] = useState("");
+  const [solPriceInUSD, setSolPriceInUSD] = useState(0);
+  const [solToLock, setSolToLock] = useState(0);
+  const [itemPrice, setItemPrice] = useState(223);
 
   const getProvider = () => {
     console.log("Getting provider");
+    console.log(0.0000001 * LAMPORTS_PER_SOL);
     if (!wallet || !publicKey || !signTransaction || !signAllTransactions) {
       return;
     }
@@ -69,6 +84,15 @@ export const CollateralPaymentButton = () => {
 
       console.log(myProgram);
       setAnchorProgram(myProgram);
+
+      axios
+        .get(
+          "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+        )
+        .then((data) => {
+          setSolPriceInUSD(data.data.solana);
+          setSolToLock(itemPrice / data.data.solana.usd);
+        });
     }
   };
 
@@ -100,18 +124,31 @@ export const CollateralPaymentButton = () => {
     await loadAnchor();
     const seller = new anchor.web3.Keypair();
     const paymentChannel = new anchor.web3.Keypair();
+    let seller_usdc_associated_acc;
 
-    // const seller_usdc_associated_acc = await findAssociatedTokenAddress(
-    //   provider.wallet.publicKey,
-    //   USDC_MINT
-    // );
+    if (provider) {
+      seller_usdc_associated_acc = await findAssociatedTokenAddress(
+        provider.wallet.publicKey,
+        USDC_MINT
+      );
 
-    const seller_usdc_associated_acc = await getOrCreateAssociatedTokenAccount(
-      connection,
-      provider.wallet,
-      USDC_MINT,
-      provider.wallet.publicKey
-    ).then((data) => data.address);
+      try {
+        const Ix = createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          seller_usdc_associated_acc,
+          provider.wallet.publicKey,
+          USDC_MINT
+        );
+
+        const tx = new Transaction().add(Ix);
+
+        console.log(provider);
+
+        await provider.sendAndConfirm(tx);
+      } catch (err) {
+        console.log(seller_usdc_associated_acc.toString());
+      }
+    }
 
     if (provider?.wallet.publicKey) {
       const [vault, nonce] = await anchor.web3.PublicKey.findProgramAddress(
@@ -130,7 +167,7 @@ export const CollateralPaymentButton = () => {
       });
 
       let signature = await anchorProgram.rpc.createChannel(
-        new anchor.BN(200),
+        new anchor.BN(itemPrice),
         seller.publicKey,
         seller_usdc_associated_acc,
         vault,
@@ -153,7 +190,7 @@ export const CollateralPaymentButton = () => {
 
       console.log(`Signature -> ${signature}`);
 
-      signature = await anchorProgram.rpc.lockSol(new anchor.BN(2), {
+      signature = await anchorProgram.rpc.lockSol(new anchor.BN(Math.round(solToLock)), {
         accounts: {
           buyer: provider.wallet.publicKey,
           vaultPda: vault,
@@ -199,7 +236,7 @@ export const CollateralPaymentButton = () => {
               <img src={product} />
             </div>
             {paymentPending ? (
-              <PaymentPending lockSol={lockSol} />
+              <PaymentPending lockSol={lockSol} solToLock={solToLock} itemPrice={itemPrice} />
             ) : (
               <PaymentSuccess paymentChannel={paymentChannel.toString()} />
             )}
@@ -239,18 +276,26 @@ const PaymentSuccess = ({ paymentChannel }: { paymentChannel: string }) => {
   );
 };
 
-const PaymentPending = ({ lockSol }: { lockSol: any }) => {
+const PaymentPending = ({
+  lockSol,
+  itemPrice,
+  solToLock,
+}: {
+  lockSol: any;
+  itemPrice: number,
+  solToLock: number;
+}) => {
   return (
     <div className="collateral_payment_card_main_product_details">
       <h6>IPhone X</h6>
       <p>Payment due: 27th Nov 2022</p>
-      <p>SOL to lock: 2 SOL</p>
-      <p>Price: $200 USDC</p>
+      <p>SOL to lock: {Math.round(solToLock)} SOL</p>
+      <p>Price: ${itemPrice} USDC</p>
       <div className="lock_sol_btn">
         <p>What is collateral?</p>
         <button onClick={() => lockSol()}>
           {" "}
-          <img src={solanaLogo} /> Lock 2 SOL
+          <img src={solanaLogo} /> Lock {Math.round(solToLock)} SOL
         </button>
       </div>
     </div>

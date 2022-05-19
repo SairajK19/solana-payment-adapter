@@ -8,7 +8,7 @@ import { Line, Circle } from "rc-progress";
 import "./PaymentProgress.css";
 import { Close } from "../Close/Close";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
 import { idl } from "../../idl";
 import { TOKEN_PROGRAM_ID, TokenInstructions } from "@project-serum/token";
@@ -51,6 +51,7 @@ const connection = new Connection(network, { commitment: "processed" });
 
 export const PaymentProgress = () => {
   const [payUsdc, setPayUsdc] = useState(false);
+  const [usdcBalance, setUSDCBalance] = useState(0);
   const { publicKey, wallet, signAllTransactions, signTransaction } =
     useWallet();
 
@@ -59,6 +60,7 @@ export const PaymentProgress = () => {
   const { paymentId } = useParams();
   const [paymentData, setPaymentData] = useState<any>(null);
   const amount = useRef<any>();
+  const [lockedSolAmount, setLockedSolAmount] = useState(0);
 
   const getProvider = () => {
     console.log("Getting provider");
@@ -94,6 +96,18 @@ export const PaymentProgress = () => {
     }
   };
 
+  const getWalletUSDCBalance = async () => {
+    const assTokenAccUSDC = await findAssociatedTokenAddress(
+      provider.wallet.publicKey,
+      USDC_MINT
+    );
+
+    const accountInfo = await getAccount(connection, assTokenAccUSDC);
+    console.log(accountInfo);
+
+    setUSDCBalance(Number(accountInfo.amount) / LAMPORTS_PER_SOL);
+  };
+
   useEffect(() => {
     getProvider();
   }, [publicKey, wallet]);
@@ -104,12 +118,18 @@ export const PaymentProgress = () => {
 
   useEffect(() => {
     if (anchorProgram) {
+      console.log("Loaded anchor")
       anchorProgram.account.paymentChannel
         .fetch(paymentId)
         .then((data: any) => {
-          console.log(data);
+          setLockedSolAmount(
+            data.lockedSolAmount.toNumber() / LAMPORTS_PER_SOL
+          );
+          console.log(data)
           setPaymentData(data);
         });
+
+      getWalletUSDCBalance();
     } else {
       console.log("Loading Anchor");
     }
@@ -171,6 +191,16 @@ export const PaymentProgress = () => {
           systemProgram: anchor.web3.SystemProgram.programId,
         },
       });
+
+      toast.success(`Successly withdrew ${lockedSolAmount}SOL  🚀️`, {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     } else {
       console.log("Err");
       toast.error("Cannot withdraw unless paid! 😥️", {
@@ -200,7 +230,7 @@ export const PaymentProgress = () => {
   return (
     <div className="payment_progress_card">
       <div className="payment_progress_topbar">
-        <h6>14th April 2022</h6>
+        <h6>Payment Due: 27th Nov 2022</h6>
       </div>
       <div className="payment_progress_details_wrapper">
         <div className="payment_progress_details">
@@ -218,9 +248,9 @@ export const PaymentProgress = () => {
             <p>
               Payment in progess:{" "}
               {paymentData !== null
-                ? (paymentData.amountPaid.toNumber() /
+                ? ((paymentData.amountPaid.toNumber() /
                     paymentData.itemValue.toNumber()) *
-                  100
+                  100).toFixed(0)
                 : 0}
               %
             </p>
@@ -280,11 +310,11 @@ export const PaymentProgress = () => {
                     />
                     <button onClick={() => handleMax()}>Max</button>
                   </div>
-                  <p>Balance to pay: $200 USDC</p>
+                  <p>Balance to pay: ${paymentData? paymentData.itemValue - paymentData.amountPaid: "0"} USDC</p>
                 </div>
 
                 <div className="pay_button_wrapper">
-                  <p>Wallet Balance: 2000 USDC</p>
+                  {/* <p>Wallet Balance: {usdcBalance} USDC</p> */}
                   <button onClick={() => payUsdcHandler()}>
                     Pay USDC <img src={usdc} />
                   </button>
