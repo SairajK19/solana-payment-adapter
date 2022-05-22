@@ -118,14 +118,14 @@ export const PaymentProgress = () => {
 
   useEffect(() => {
     if (anchorProgram) {
-      console.log("Loaded anchor")
+      console.log("Loaded anchor");
       anchorProgram.account.paymentChannel
         .fetch(paymentId)
         .then((data: any) => {
           setLockedSolAmount(
             data.lockedSolAmount.toNumber() / LAMPORTS_PER_SOL
           );
-          console.log(data)
+          console.log(data);
           setPaymentData(data);
         });
 
@@ -158,15 +158,18 @@ export const PaymentProgress = () => {
 
       console.log("Token address -> ", tokenAcc.address.toString());
 
-      await anchorProgram.rpc.payAmount(new anchor.BN(amount.current.value), {
-        accounts: {
-          buyer: tokenAcc.address.toString(),
-          seller: data.receiverUsdcAccount,
-          authority: provider.wallet.publicKey,
-          paymentChannel: new PublicKey(paymentId),
-          tokenProgram: TOKEN_PROGRAM_ID,
-        },
-      });
+      await anchorProgram.rpc.payAmount(
+        new anchor.BN(amount.current.value * LAMPORTS_PER_SOL),
+        {
+          accounts: {
+            buyer: tokenAcc.address.toString(),
+            seller: data.receiverUsdcAccount,
+            authority: provider.wallet.publicKey,
+            paymentChannel: new PublicKey(paymentId),
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+        }
+      );
 
       setPayUsdc(false);
 
@@ -222,7 +225,7 @@ export const PaymentProgress = () => {
     if (amountInput) {
       // @ts-ignore
       amountInput.value = (
-        paymentData.itemValue.toNumber() - paymentData.amountPaid.toNumber()
+        (paymentData.itemValue.toNumber() - paymentData.amountPaid.toNumber()) / LAMPORTS_PER_SOL
       ).toString();
     }
   };
@@ -248,14 +251,19 @@ export const PaymentProgress = () => {
             <p>
               Payment in progess:{" "}
               {paymentData !== null
-                ? ((paymentData.amountPaid.toNumber() /
-                    paymentData.itemValue.toNumber()) *
-                  100).toFixed(0)
+                ? (
+                    (paymentData.amountPaid.toNumber() /
+                      paymentData.itemValue.toNumber()) *
+                    100
+                  ).toFixed(0)
                 : 0}
               %
             </p>
             <p>
-              ${paymentData !== null ? paymentData.itemValue.toNumber() : 0}{" "}
+              $
+              {paymentData !== null
+                ? paymentData.itemValue.toNumber() / LAMPORTS_PER_SOL
+                : 0}{" "}
               USDC{" "}
               {paymentData !== null
                 ? paymentData.itemValue.toNumber() ===
@@ -310,7 +318,14 @@ export const PaymentProgress = () => {
                     />
                     <button onClick={() => handleMax()}>Max</button>
                   </div>
-                  <p>Balance to pay: ${paymentData? paymentData.itemValue - paymentData.amountPaid: "0"} USDC</p>
+                  <p>
+                    Balance to pay: $
+                    {paymentData
+                      ? (paymentData.itemValue - paymentData.amountPaid) /
+                        LAMPORTS_PER_SOL
+                      : "0"}{" "}
+                    USDC
+                  </p>
                 </div>
 
                 <div className="pay_button_wrapper">

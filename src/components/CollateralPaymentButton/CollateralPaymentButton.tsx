@@ -167,7 +167,7 @@ export const CollateralPaymentButton = () => {
       });
 
       let signature = await anchorProgram.rpc.createChannel(
-        new anchor.BN(itemPrice),
+        new anchor.BN(itemPrice * LAMPORTS_PER_SOL),
         seller.publicKey,
         seller_usdc_associated_acc,
         vault,
